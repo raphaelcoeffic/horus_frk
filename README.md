@@ -15,6 +15,7 @@ DECIMAL       HEXADECIMAL     DESCRIPTION
 --------------------------------------------------------------------------------
 1793748       0x1B5ED4        \x79\x09\xAA\x9A\xBE\x70\x25\xB3\x7C\xF9\x87\x5F\xAA\x7C\xC3\xD1
 
+-> this is your offset (0x1B5ED4 in hexadecimal or 1793748 in decimal)
 
 Find end-of-firmware:
 ---------------------
@@ -26,9 +27,15 @@ DECIMAL       HEXADECIMAL     DESCRIPTION
 1867476       0x1C7ED4        \x00\x00\x00\x00
 1867486       0x1C7EDE        \x00\x00\x00\x00
 
+-> this gives you the end offset. If you substract the previous offset from that one, you get the length.
 
 Check what is before the prolog:
 --------------------------------
+
+Here we want to see what is contained in the 16 bytes before the firmware,
+so we display 16 bytes, beginning at (start offset - 0x10). 
+
+So here: 0x1B5ED4 - 0x10 = 0x1B5EC4
 
 $ binwalk -W -l 16 -o 0x1B5EC4 X12S_mode1_NEU_1603_frtx.bin
 
@@ -36,9 +43,12 @@ OFFSET      X12S_mode1_NEU_1603_frtx.bin
 --------------------------------------------------------------------------------
 0x001B5EC4  00 00 00 00 00 00 00 00 00 00 10 3C 2E 00 00 00 |...........<....|
 
+In this firmware, the length seems to be encoded after the firmware, so let's have a look at it.
 
 Check epilog:
 -------------
+
+Here we want to look at the 16 bytes after the firmware, which is why we use the end offset (0x1C7ED4).
 
 $ binwalk -W -l 16 -o 0x1C7ED4 X12S_mode1_NEU_1603_frtx.bin
 
@@ -48,15 +58,21 @@ OFFSET      X12S_mode1_NEU_1603_frtx.bin
 
 -> firmware size: 0x012000 (72KB)
 
+Now we should check that numbers match:
+end offset - start offset = 0x1C7ED4 - 0x1B5ED4 = 0x12000
+-> Looks good!
+
 Cut firmware out:
 -----------------
 
-$ dd bs=1 skip=0x1B5ED4 if=X12S_mode1_NEU_1603_frtx.bin of=X12S_NEU_1603_iXJT.frk count=72k
+Here we use the start offset (0x1B5ED4) and the length (72k):
+
+$ dd bs=1 skip=$((0x1B5ED4)) if=X12S_mode1_NEU_1603_frtx.bin of=X12S_NEU_1603_iXJT.frk count=72k
 73728+0 records in
 73728+0 records out
 73728 bytes transferred in 0.598368 secs (123215 bytes/sec)
 
-
+Please note that using "count=$((0x12000))" would work just the same.
 
 Offset       Filename                           Before prolog                                     Epilog / Size
 ===========================================================================================================================================
